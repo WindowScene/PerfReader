@@ -1,7 +1,7 @@
 
-def print_hi(name):
-    print(f'Hi, {name}')
+def print_log_name(log_file_name):
+    print(f'Log file name: {log_file_name}')
 
 
 if __name__ == '__main__':
-    print_hi('Username ')
+    print_log_name('Some log file.log ')
