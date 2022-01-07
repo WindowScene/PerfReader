@@ -47,6 +47,5 @@ jobs:
     - name: Test with pytest
       run: |
         pytest
-  publish:
-    needs: build
+  # TODO: https://docs.github.com/actions/automating-builds-and-tests/building-and-testing-nodejs-or-python?langId=py#publishing-to-package-registries
   
