@@ -6,4 +6,5 @@ def print_log_name(log_file_name):
 
 
 if __name__ == '__main__':
+    print("Executed")
     print_log_name(sys.argv[1])
