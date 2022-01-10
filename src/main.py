@@ -26,6 +26,7 @@ def unzip_logs(file_path):
     with zipfile.ZipFile(file_path, "r") as zip_ref:
         zip_ref.extractall(path_to_extracted_folder)
     extract_internal_folders(path_to_extracted_folder)
+    print(f"Log files in {file_path} were unzipped to {path_to_extracted_folder}")
     return path_to_extracted_folder
 
 
