@@ -3,15 +3,19 @@ import os
 import zipfile
 import csv
 import re
+import collections
 
 # placeholder for extracted logs path
 path_to_extracted_folder = ""
+receive_file_path = ""
+saving_file_path = ""
 
 
 def usage(err: None):
     print(f"""
 Usage:
     main.py <support_log_root>>
+     docker run -v /Users/kirill/Documents/V/VBO/PerfReader-PY/misc/2021-11-11T141405Z_VeeamBackupOffice365Logs.zip:logs.zip feedthemachine/perf-reader:master-9e6fe7b logs.zip
 
 Examples:
     To process an (unzipped) support log:
@@ -24,6 +28,7 @@ Examples:
 
 def unzip_logs(file_path):
     """Unzip all logs and return path to extracted folder"""
+    print("unzipping logs ...")
     extracted_logs_path_list = file_path.split(os.path.sep)
     extracted_logs_folder_list = extracted_logs_path_list[0:len(extracted_logs_path_list)-1]
     path_to_logs_folder = os.path.sep.join(extracted_logs_folder_list)
@@ -31,12 +36,15 @@ def unzip_logs(file_path):
     path_to_extracted_folder = path_to_logs_folder + os.path.sep + "Extracted"
     with zipfile.ZipFile(file_path, "r") as zip_ref:
         zip_ref.extractall(path_to_extracted_folder)
+        print("Extracted!")
     # extract_internal_folders(path_to_extracted_folder)
-    # print(f"Log files in {file_path} were unzipped to {path_to_extracted_folder}")
+    print("path_to_extracted_folder: " + path_to_extracted_folder)
     return path_to_extracted_folder
 
 
 def create_csv_files():
+    global receive_file_path
+    global saving_file_path
     receive_file_path = path_to_extracted_folder + os.sep + "receive.csv"
     saving_file_path = path_to_extracted_folder + os.sep + "saving.csv"
 
@@ -50,21 +58,42 @@ def create_csv_files():
 
 
 def process_proxy_files():
+    r_rates = {}
+    s_rates = {}
     for actual_file_name in os.listdir(os.path.abspath(path_to_extracted_folder)):
         if "Veeam.Archiver.Proxy" in actual_file_name:
-            get_date_string(path_to_extracted_folder + os.sep + actual_file_name)
+            print(f"Processing {actual_file_name}")
+            cur_dir_proxy_file = path_to_extracted_folder + os.sep + actual_file_name
+            with open(rf"{cur_dir_proxy_file}", "r") as proxy_log_file:
+                lines = proxy_log_file.readlines()
+                for line in lines:
+                    # find all receive rate lines
+                    if "Receive rate:" in line:
+                        r_rates[get_date_string(line)] = get_rate(line, "Receive rate:")
+                    if "Saving rate :" in line:
+                        s_rates[get_date_string(line)] = get_rate(line, "Saving rate :")
+        sorted_dict = collections.OrderedDict(r_rates)
+        with open(receive_file_path, "w") as r_file:
+            writer = csv.writer(r_file)
+            for k, v in sorted_dict.items():
+                writer.writerow([k, v])
+
+        sorted_dict = collections.OrderedDict(s_rates)
+        with open(saving_file_path, "w") as s_file:
+            writer = csv.writer(s_file)
+            for k, v in sorted_dict.items():
+                writer.writerow([k, v])
 
 
-def get_date_string(file_name):
-    date_string_pattern = re.compile(r"\\d*/\\d*/\\d* \\d*:\\d*:\\d* ?([AaPp][Mm])")
-    with open(rf"{file_name}", "r") as proxy_log_file:
-        lines = proxy_log_file.readlines()
-        for line in lines:
-            print(line[0:10])
-            # found = date_string_pattern.search(line)
-            # print(found.group())
-        # print(proxy_log_file[0:10])
-    # print(date_string)
+def get_rate(log_line, pattern_to_find):
+    if pattern_to_find in log_line:
+        return log_line.strip().split()[len(log_line.split())-2]
+
+
+def get_date_string(log_line):
+    date_string_pattern = re.compile("\\d*/\\d*/\\d* \\d*:\\d*:\\d* ?([AaPp][Mm])")
+    if date_string_pattern.match(log_line) is not None:
+        return date_string_pattern.match(log_line).group()
 
 
 def extract_internal_folders(path_to_extracted_folder_internal):
@@ -88,15 +117,10 @@ def parse_unzipped_logs(unzipped_logs_folder):
 
 
 def main(file_path):
-    print("unzipping logs ...")
     unzip_logs(file_path)
-    print("path_to_extracted_folder: " + path_to_extracted_folder)
-    # parse_unzipped_logs(path_to_extracted_folder)
-    # print("path_to_extracted_folder after parse_unzipped_logs(path_to_extracted_folder) " + path_to_extracted_folder)
-    # create_csv_files()
-    # print("path_to_extracted_folder after create_csv_files() " + path_to_extracted_folder)
-    # process_proxy_files()
-    # print("path_to_extracted_folder after process_proxy_files() " + path_to_extracted_folder)
+    parse_unzipped_logs(path_to_extracted_folder)
+    create_csv_files()
+    process_proxy_files()
 
 
 if __name__ == '__main__':
