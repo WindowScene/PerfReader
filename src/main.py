@@ -5,6 +5,13 @@ import csv
 import re
 import collections
 
+import matplotlib
+import matplotlib.pyplot as plt
+from datetime import datetime
+import numpy as np
+
+
+
 # placeholder for extracted logs path
 path_to_extracted_folder = ""
 receive_file_path = ""
@@ -14,8 +21,8 @@ saving_file_path = ""
 def usage(err: None):
     print(f"""
 Usage:
-    main.py <support_log_root>>
-     docker run -v /Users/kirill/Documents/V/VBO/PerfReader-PY/misc/2021-11-11T141405Z_VeeamBackupOffice365Logs.zip:logs.zip feedthemachine/perf-reader:master-9e6fe7b logs.zip
+    main.py <support_log_root>
+    docker run -v /Users/kirill/Documents/V/VBO/PerfReader-PY/misc/2021-11-11T141405Z_VeeamBackupOffice365Logs.zip:logs.zip feedthemachine/perf-reader:master-9e6fe7b logs.zip
 
 Examples:
     To process an (unzipped) support log:
@@ -116,11 +123,39 @@ def parse_unzipped_logs(unzipped_logs_folder):
     pass
 
 
+def plot():
+    ts_axis = []
+    rate_axis = []
+    with open(receive_file_path, "r") as r_file:
+        receive_csv_reader = csv.reader(r_file, delimiter=',')
+        for row in receive_csv_reader:
+            ts_axis.append(create_date_time(row[0]))
+            rate_axis.append(int(row[1]))
+
+    # plotting the points
+    plt.plot(ts_axis, rate_axis)
+    plt.yticks(np.arange(0, 0, 10.0))
+
+    plt.xlabel('Timestamp')
+    plt.ylabel('Rate')
+
+    # giving a title to my graph
+    plt.title('Processing rates')
+
+
+    # function to show the plot
+    plt.show()
+
+
+def create_date_time(timestamp_string):
+    return datetime.strptime(timestamp_string, '%d/%m/%Y %H:%M:%S %p')
+
 def main(file_path):
     unzip_logs(file_path)
     parse_unzipped_logs(path_to_extracted_folder)
     create_csv_files()
     process_proxy_files()
+    plot()
 
 
 if __name__ == '__main__':

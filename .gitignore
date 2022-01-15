@@ -226,3 +226,5 @@ fabric.properties
 .idea/caches/build_file_checksums.ser
 /src/plot_scans.py
 /misc/
+/src/plots.py
+/src/targetdir/
